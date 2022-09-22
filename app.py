@@ -1,22 +1,7 @@
-#!/usr/bin/env python
-# coding: utf-8
-
-# ## *Import Libraries*
-
-# In[25]:
-
-
 import streamlit as st
+from xgboost import XGBRegressor
 import numpy as np
-import xgboost as xgb
 import json
-
-
-# ## *Load JSON File*
-# We load the JSON file that will help us to preprocess One Hot Encoding data.
-
-# In[32]:
-
 
 
 st.cache(allow_output_mutation=True)
@@ -30,11 +15,6 @@ def json_file():
 
     return data_json
 
-
-# ## *User Inputs Widgets*
-# Create the widgets so that the user enters the data in a comfortable way.
-
-# In[33]:
 
 
 st.cache(allow_output_mutation=True)
@@ -112,26 +92,21 @@ def UserInputs():
        'X-CLASS', 'S Class'))
                                                     
     
-    trasmission = st.radio('Trasmission',('Automatic','Manual','Semi-Auto'))
+    transmission = st.radio('Transmission',('Automatic','Manual','Semi-Auto'))
     
     year = st.slider('Year',min_value = 2000,max_value = 2020,step = 1)
     
     
     fuelType = st.radio('Fuel Type',('Diesel','Hybrid','Petrol'))
     
-    engineSize = st.selectbox('Engine Size',(0.0, 1.0,1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,2,2.1,2.2,
+    engineSize = st.selectbox('Engine Size',(0.0, 1.0,1.1,1.2,1.3,1.4,1.5,1.6,1.7,1.8,2.0,2.1,2.2,
        2.3,2.4,2.5,2.8,2.9,3.0,3.2,3.5,4.0,4.2,4.4,4.7,5.0,5.2, 5.5, 6.2))
    
      
-    mileage = st.number_input('Mile Age',min_value = 3100,max_value = 100000)
+    mileage = st.number_input('Mileage',min_value = 3100,max_value = 100000)
    
 
-    return manufacturer,model_car,trasmission,year,fuelType,engineSize,mileage
-
-
-# ## *One Hot Encoding*
-
-# In[37]:
+    return manufacturer,model_car,transmission,year,fuelType,engineSize,mileage
 
 
 st.cache(allow_output_mutation=True)
@@ -139,24 +114,30 @@ st.cache(allow_output_mutation=True)
 def preprocess():
     
     columns = json_file()
-    model_car,manufacturer,trasmision,year,fuelType,engineSize,mileage= UserInputs()
+    manufacturer,model_car,transmission,year,fuelType,engineSize,mileage= UserInputs()
     
     data = np.zeros(len(columns))
     
+    manufacturer_idx = np.where(columns == manufacturer)[0][0]
     model_idx = np.where(columns == model_car)[0][0]
-    trasmision_idx = np.where(columns == trasmision)[0][0]
+    transmission_idx = np.where(columns == transmission)[0][0]
     fuel_type_idx = np.where(columns == fuelType)[0][0]
     
     data[165] = year
     data[170] = engineSize
     data[171] = mileage
-
+ 
+    
+            
+    if manufacturer_idx >=0:
+        data[manufacturer_idx] = 1
     
     if model_idx >=0:
         data[model_idx] = 1
+     
         
-    if trasmision_idx >=0:
-        data[trasmision_idx] = 1
+    if transmission_idx >=0:
+        data[transmission_idx] = 1
         
     if fuel_type_idx >=0:
         data[fuel_type_idx] = 1
@@ -164,32 +145,30 @@ def preprocess():
     return np.asarray([data])
 
 
-# ## *Load Model*
-
-# In[35]:
-
-
 st.cache(allow_output_mutation=True)
 
 def predict(new_data):
-    model = xgb.XGBRegressor().load_model("cars_sales_model.json")
-    return  np.round(model.predict(new_data)).astype(int)
-
-
-# ## *Generate Predictions*
-# The user clicks the "Predict" button to generate the prediction.
-
-# In[36]:
+    model = XGBRegressor()
+    model.load_model("cars_sales_model.json")
+    return np.round(model.predict(new_data)).astype(int)
 
 
 st.cache(allow_output_mutation=True)
 
 def main():
     
-    st.subheader("User Input")
+    st.subheader("""Predict Price Car""")
+    st.image("img.jpeg")
+  
     new_data = preprocess()
+    
     if st.button(label = 'Predict'):
         
         price=predict(new_data)
         st.success(f'The estimated price of the vehicle is: $ {price} £')
 
+
+st.cache(allow_output_mutation=True)
+
+if __name__ == '__main__':
+    main()
